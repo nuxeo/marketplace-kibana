@@ -1,0 +1,100 @@
+<project name="nuxeo-assembly"
+         default="build"
+         xmlns:nx="urn:nuxeo-build"
+         xmlns:artifact="urn:nuxeo-artifact">
+  <taskdef resource="org/nuxeo/build/antlib.xml" uri="urn:nuxeo-build" />
+  <taskdef resource="org/nuxeo/build/artifact/antlib.xml"
+           uri="urn:nuxeo-artifact" />
+  <taskdef resource="net/sf/antcontrib/antlib.xml" />
+
+  <target name="init" unless="init.done">
+    <property name="outdir" value="${maven.project.build.directory}" />
+    <antcall target="expand" />
+    <property name="init.done" value="true" />
+  </target>
+
+  <target name="expand">
+    <!-- Include your artifacts in the graph adding your groupId to groupPrefixes -->
+    <artifact:nuxeo-expand includeTestScope="true"
+                           groupPrefixes="org.nuxeo,com.nuxeo" />
+    <!-- For Nuxeo IDE being able to use that distribution as a SDK -->
+    <artifact:print output="${outdir}/artifacts-kibana.properties"
+                    mode="sdk" />
+    <artifact:print output="${outdir}/test-artifacts-kibana.properties"
+                    mode="sdk"
+                    scopes="test" />
+    <!-- Prints the graph for debugging purpose -->
+    <artifact:print output="${outdir}/dependency-tree.log" />
+  </target>
+
+  <target name="build"
+          depends="init"
+          description="Build Kibana Marketplace package">
+    <tstamp />
+    <delete failonerror="false" dir="${outdir}/marketplace" />
+    <mkdir dir="${outdir}/marketplace" />
+    <copy todir="${outdir}/marketplace">
+      <fileset dir="src/main/resources" />
+      <filterset>
+        <filter token="VERSION" value="${maven.project.version}" />
+        <filter token="DISTRIB_VERSION" value="${nuxeo.distribution.version}" />
+      </filterset>
+    </copy>
+    <copy file="${outdir}/artifacts-kibana.properties"
+          todir="${outdir}/marketplace/install" />
+    <copy file="${outdir}/test-artifacts-kibana.properties"
+          todir="${outdir}/marketplace/install" />
+
+
+    <!-- Nuxeo bundles -->
+    <copy todir="${outdir}/marketplace/install/bundles" overwrite="true">
+      <artifact:set>
+        <includes>
+          <artifact groupId="org.nuxeo.kibana*" scope="!test" type="!pom" />
+        </includes>
+      </artifact:set> 
+    </copy>
+
+
+    <!-- Generate install.xml content -->
+    <!-- See documentation at http://doc.nuxeo.com/x/IgIz -->
+    <var name="install.bundles" value="" />
+    <if>
+      <available file="${outdir}/marketplace/install/bundles" />
+      <then>
+        <var name="install.bundles"
+             value="${line.separator}
+  &lt;update file=&quot;${package.root}/install/bundles&quot; todir=&quot;${env.bundles}&quot; /&gt;" />
+      </then>
+    </if>
+
+    <var name="install.libs" value="" />
+    <var name="install.templates" value="" />
+
+    <var name="install.properties"
+         value="${line.separator}
+  &lt;copy file=&quot;${package.root}/install/artifacts-kibana.properties&quot;${line.separator}
+    todir=&quot;${env.server.home}/sdk&quot; overwrite=&quot;true&quot; /&gt;${line.separator}
+  &lt;copy file=&quot;${package.root}/install/test-artifacts-kibana.properties&quot;${line.separator}
+    todir=&quot;${env.server.home}/sdk&quot; overwrite=&quot;true&quot; /&gt;" />
+
+
+
+    <copy file="src/main/resources/install.xml"
+          todir="${outdir}/marketplace"
+          overwrite="true">
+      <filterset>
+        <filter token="BUNDLES" value="${install.bundles}" />
+        <filter token="LIBS" value="${install.libs}" />
+        <filter token="PROPERTIES" value="${install.properties}" />
+        <filter token="TEMPLATES" value="${install.templates}" />
+      </filterset>
+    </copy>
+
+    <zip destfile="${outdir}/${maven.project.artifactId}-${maven.project.version}.zip"
+         basedir="${outdir}/marketplace" />
+    <artifact:attach file="${outdir}/${maven.project.artifactId}-${maven.project.version}.zip"
+                     type="zip" />
+  </target>
+
+</project>

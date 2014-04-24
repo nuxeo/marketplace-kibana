@@ -1,0 +1,21 @@
+<package type="addon" name="nuxeo-kibana" version="@VERSION@">
+  <title>Nuxeo Kibana Integration</title>
+  <description>
+    <p>Add Kibana</p>
+  </description>
+  <home-page>https://github.com/nuxeo/nuxeo-kibana</home-page>
+  <vendor>Nuxeo</vendor>
+  <installer restart="true" />
+  <uninstaller restart="true" />
+  <nuxeo-validation>nuxeo_certified</nuxeo-validation>
+  <production-state>testing</production-state>
+  <supported>false</supported>
+  <platforms>
+    <platform>cap-@DISTRIB_VERSION@</platform>
+  </platforms>
+  <dependencies>
+    <package>nuxeo-elastic-search:@DISTRIB_VERSION</package>
+  </dependencies>
+  <license>LGPL 2.1</license>
+  <license-url>http://www.gnu.org/licenses/lgpl-2.1.html</license-url>
+</package>
